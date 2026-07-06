@@ -1,0 +1,74 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return isSignedIn() &&
+        exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+
+    function isOwningClient(clientId) {
+      return isSignedIn() &&
+        exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.clientId == clientId;
+    }
+
+    // users/{uid} — role lookup document. Admin can read/write any; a user can read their own.
+    match /users/{uid} {
+      allow read: if isAdmin() || (isSignedIn() && request.auth.uid == uid);
+      allow write: if isAdmin();
+    }
+
+    // clients/{clientId} and everything underneath
+    match /clients/{clientId} {
+      allow read, write: if isAdmin();
+      allow read: if isOwningClient(clientId);
+
+      match /numerologyReports/{reportId} {
+        allow read, write: if isAdmin();
+        allow read: if isOwningClient(clientId) && resource.data.published == true;
+      }
+
+      match /mobileNumerologyReports/{reportId} {
+        allow read, write: if isAdmin();
+        allow read: if isOwningClient(clientId) && resource.data.published == true;
+      }
+
+      match /vastuProfile/{docId} {
+        allow read, write: if isAdmin();
+        allow read: if isOwningClient(clientId);
+      }
+
+      match /vastuVisits/{visitId} {
+        allow read, write: if isAdmin();
+        allow read: if isOwningClient(clientId) && resource.data.published == true;
+      }
+
+      match /astrologyProfile/{docId} {
+        allow read, write: if isAdmin();
+        allow read: if isOwningClient(clientId);
+      }
+
+      match /astrologyCharts/{chartId} {
+        allow read, write: if isAdmin();
+        allow read: if isOwningClient(clientId) && resource.data.published == true;
+      }
+
+      match /invoices/{invoiceId} {
+        allow read, write: if isAdmin();
+        allow read: if isOwningClient(clientId);
+      }
+
+      match /appointments/{apptId} {
+        allow read, write: if isAdmin();
+        allow read: if isOwningClient(clientId);
+      }
+    }
+  }
+}
