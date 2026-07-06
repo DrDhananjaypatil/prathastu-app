@@ -336,6 +336,30 @@ function BirthReportView({ report, altNames, setAltNames, clientId }) {
         )}
       </div>
 
+      {/* Full Number Compatibility Table */}
+      <div style={{ marginTop: 20 }}>
+        <h3>Number Compatibility Table (vs. Moolank {moolank})</h3>
+        <table>
+          <thead><tr><th>Number</th><th>Status</th><th>Meaning</th></tr></thead>
+          <tbody>
+            {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((n) => {
+              const status = getCompatibility(n, moolank);
+              return (
+                <tr key={n}>
+                  <td>{n}</td>
+                  <td>
+                    <span className={`badge ${status === "Friendly" ? "badge-paid" : status === "Enemy (Anti)" ? "badge-unpaid" : ""}`}>
+                      {status}
+                    </span>
+                  </td>
+                  <td style={{ fontSize: "0.85rem" }}>{NUMBER_MEANINGS[n]}</td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+
       {/* Sound & Vibration — first letter reading */}
       <div style={{ marginTop: 20 }}>
         <h3>Sound &amp; Vibration — First Letter Reading</h3>
