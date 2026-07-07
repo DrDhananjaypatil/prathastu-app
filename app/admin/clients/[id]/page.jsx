@@ -9,6 +9,7 @@ import NumerologyPanel from "@/components/NumerologyPanel";
 import VastuPanel from "@/components/VastuPanel";
 import BillingPanel from "@/components/BillingPanel";
 import AppointmentsPanel from "@/components/AppointmentsPanel";
+import AstrologyPanel from "@/components/AstrologyPanel";
 
 const TABS = ["Overview", "Numerology", "Vastu Shastra", "Astrology", "Billing", "Appointments"];
 
@@ -186,15 +187,7 @@ export default function ClientDetailPage() {
 
       {tab === "Numerology" && <NumerologyPanel client={client} />}
       {tab === "Vastu Shastra" && <VastuPanel client={client} />}
-      {tab === "Astrology" && (
-        <div className="card">
-          <h3>Astrology — Coming in Phase 2</h3>
-          <p style={{ color: "#666" }}>
-            The full Vedic birth chart engine (planets, houses, 10-year dasha timeline) is being built as its
-            own dedicated module for accuracy. This tab will light up once that's wired in.
-          </p>
-        </div>
-      )}
+      {tab === "Astrology" && <AstrologyPanel client={client} />}
       {tab === "Billing" && <BillingPanel client={client} />}
       {tab === "Appointments" && <AppointmentsPanel client={client} />}
     </div>

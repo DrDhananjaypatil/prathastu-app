@@ -12,6 +12,7 @@ import {
   calcMobileAdjacentPairs,
   calcUniqueDigitCombinations,
   suggestCompatibleNames,
+  computeTwoPersonCompatibility,
 } from "@/lib/numerology";
 import {
   MISSING_NUMBER_REMEDIES,
@@ -31,7 +32,7 @@ import { exportBirthReportPDF, exportMobileReportPDF } from "@/lib/pdfExport";
 import { LANGUAGES } from "@/lib/translations";
 
 export default function NumerologyPanel({ client }) {
-  const [section, setSection] = useState("birth"); // "birth" | "mobile"
+  const [section, setSection] = useState("birth"); // "birth" | "mobile" | "compatibility"
   return (
     <div>
       <div className="tabs">
@@ -41,8 +42,13 @@ export default function NumerologyPanel({ client }) {
         <button className={`tab ${section === "mobile" ? "active" : ""}`} onClick={() => setSection("mobile")}>
           Numerology — By Mobile Number
         </button>
+        <button className={`tab ${section === "compatibility" ? "active" : ""}`} onClick={() => setSection("compatibility")}>
+          Two-Person Compatibility
+        </button>
       </div>
-      {section === "birth" ? <BirthDetailsSection client={client} /> : <MobileNumberSection client={client} />}
+      {section === "birth" && <BirthDetailsSection client={client} />}
+      {section === "mobile" && <MobileNumberSection client={client} />}
+      {section === "compatibility" && <CompatibilitySection client={client} />}
     </div>
   );
 }
@@ -855,6 +861,154 @@ function NumberCell({ label, value }) {
     <div className="number-cell">
       <div className="value">{value}</div>
       <div className="label">{label}</div>
+    </div>
+  );
+}
+
+// ============================================================
+// SECTION 3 — Two-Person Compatibility
+// ============================================================
+function CompatibilitySection({ client }) {
+  const [personA, setPersonA] = useState({
+    firstName: client.firstName || "",
+    middleName: client.middleName || "",
+    lastName: client.lastName || "",
+    dob: client.dob || "",
+  });
+  const [personB, setPersonB] = useState({ firstName: "", middleName: "", lastName: "", dob: "" });
+  const [system, setSystem] = useState("CHALDEAN");
+  const [result, setResult] = useState(null);
+  const [aiBusy, setAiBusy] = useState(false);
+  const [aiError, setAiError] = useState("");
+  const [aiText, setAiText] = useState("");
+  const [pdfLang, setPdfLang] = useState("en");
+
+  function handleCompute(e) {
+    e.preventDefault();
+    if (!personA.firstName || !personA.dob || !personB.firstName || !personB.dob) return;
+    setResult(computeTwoPersonCompatibility({ personA, personB, system }));
+    setAiText("");
+  }
+
+  async function handleGenerateAiStudy() {
+    if (!result) return;
+    setAiBusy(true);
+    setAiError("");
+    try {
+      const res = await fetch("/api/generate-report", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          reportType: "compatibility",
+          language: pdfLang,
+          data: {
+            nameA: result.personA.fullName, nameB: result.personB.fullName,
+            moolankA: result.personA.moolank, moolankB: result.personB.moolank,
+            bhagyankA: result.personA.bhagyank, bhagyankB: result.personB.bhagyank,
+            nameNumberA: result.personA.nameNumber, nameNumberB: result.personB.nameNumber,
+            overallScore: result.overallScore,
+            pairs: result.pairs,
+          },
+        }),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || "Generation failed");
+      setAiText(json.text);
+    } catch (err) {
+      setAiError(err.message);
+    } finally {
+      setAiBusy(false);
+    }
+  }
+
+  return (
+    <div>
+      <div className="card">
+        <h3>Compare Two People</h3>
+        <p style={{ fontSize: "0.82rem", color: "#666" }}>
+          Compares Moolank, Bhagyank, and Name Number between two people — useful for marriage, partnership, or
+          business-compatibility checks.
+        </p>
+        <form onSubmit={handleCompute}>
+          <div className="grid-2">
+            <div>
+              <h4 style={{ margin: "4px 0" }}>Person A</h4>
+              <label>First Name</label>
+              <input required value={personA.firstName} onChange={(e) => setPersonA({ ...personA, firstName: e.target.value })} />
+              <label>Last Name</label>
+              <input value={personA.lastName} onChange={(e) => setPersonA({ ...personA, lastName: e.target.value })} />
+              <label>Date of Birth</label>
+              <input required type="date" value={personA.dob} onChange={(e) => setPersonA({ ...personA, dob: e.target.value })} />
+            </div>
+            <div>
+              <h4 style={{ margin: "4px 0" }}>Person B</h4>
+              <label>First Name</label>
+              <input required value={personB.firstName} onChange={(e) => setPersonB({ ...personB, firstName: e.target.value })} />
+              <label>Last Name</label>
+              <input value={personB.lastName} onChange={(e) => setPersonB({ ...personB, lastName: e.target.value })} />
+              <label>Date of Birth</label>
+              <input required type="date" value={personB.dob} onChange={(e) => setPersonB({ ...personB, dob: e.target.value })} />
+            </div>
+          </div>
+          <label>System</label>
+          <select value={system} onChange={(e) => setSystem(e.target.value)}>
+            <option value="CHALDEAN">Chaldean</option>
+            <option value="PYTHAGOREAN">Pythagorean</option>
+          </select>
+          <button className="btn btn-primary" style={{ marginTop: 10 }}>Compute Compatibility</button>
+        </form>
+      </div>
+
+      {result && (
+        <div className="card">
+          <div className="card-title-row">
+            <h3 style={{ margin: 0 }}>Compatibility Result</h3>
+            <select value={pdfLang} onChange={(e) => setPdfLang(e.target.value)} style={{ marginBottom: 0, width: "auto" }}>
+              {Object.entries(LANGUAGES).map(([code, l]) => (
+                <option key={code} value={code}>{l.label}</option>
+              ))}
+            </select>
+          </div>
+
+          <div className="grid-3" style={{ marginBottom: 16 }}>
+            <NumberCell label={`${result.personA.fullName} — Moolank`} value={result.personA.moolank} />
+            <NumberCell label={`${result.personB.fullName} — Moolank`} value={result.personB.moolank} />
+            <NumberCell label="Overall Compatibility" value={`${result.overallScore}%`} />
+          </div>
+
+          <table>
+            <thead><tr><th>Comparison</th><th>Numbers</th><th>Status</th></tr></thead>
+            <tbody>
+              {result.pairs.map((p, i) => (
+                <tr key={i}>
+                  <td>{p.label}</td>
+                  <td>{p.numA} vs {p.numB}</td>
+                  <td>
+                    <span className={`badge ${p.status === "Benefic" ? "badge-paid" : p.status === "Malefic" ? "badge-unpaid" : ""}`}>
+                      {p.status}
+                    </span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+
+          <div className="card" style={{ background: "var(--parchment)", marginTop: 16 }}>
+            <div className="card-title-row">
+              <h3 style={{ margin: 0 }}>AI-Generated Compatibility Study</h3>
+              <button className="btn btn-primary" onClick={handleGenerateAiStudy} disabled={aiBusy}>
+                {aiBusy ? "Writing…" : aiText ? "Regenerate" : "Generate AI Detailed Study"}
+              </button>
+            </div>
+            {aiError && <p style={{ color: "var(--danger)", fontSize: "0.85rem" }}>{aiError}</p>}
+            {aiText && (
+              <div style={{ whiteSpace: "pre-wrap", fontSize: "0.9rem", marginTop: 10, lineHeight: 1.6 }}>
+                {aiText}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

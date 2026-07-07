@@ -99,5 +99,46 @@ Write a detailed, professional mobile numerology study with these labeled sectio
 Be specific to these exact numbers, not generic. Aim for roughly 600-800 words.`;
   }
 
+  if (reportType === "astrology") {
+    return `You are an expert Vedic astrologer writing a client report for a practice called PRATHASTU. Write entirely in ${languageName}, using that language's native script. Do not mention that you are an AI, add no disclaimers, and use no markdown symbols — only plain section headers in capital letters on their own line.
+
+Client's birth chart details (already accurately calculated using real astronomical positions, sidereal/Lahiri ayanamsa):
+- Full Name: ${data.fullName}
+- Ascendant (Lagna) Rashi: ${data.ascendantRashi}
+- Moon Rashi: ${data.moonRashi}
+- Moon Nakshatra: ${data.moonNakshatra}, Pada ${data.moonPada}
+- Planet placements by Rashi: ${JSON.stringify(data.planetRashis)}
+- Planet placements by House (whole-sign, house 1 = Ascendant's sign): ${JSON.stringify(data.planetHouses)}
+- Current Vimshottari Mahadasha: ${data.currentDasha ? `${data.currentDasha.lord} (${data.currentDasha.start} to ${data.currentDasha.end})` : "Not available"}
+
+Write a detailed, professional Vedic astrology reading with these labeled sections:
+1. LAGNA AND OVERALL PERSONALITY — what the Ascendant sign reveals about outward personality and life approach.
+2. MOON SIGN AND NAKSHATRA — the emotional nature and inner mind based on Moon's Rashi and Nakshatra/Pada.
+3. KEY PLANETARY PLACEMENTS — interpret the most significant house placements (especially 1st, 7th, 10th house occupants if present, and any planet in its own or an unusual sign) and what they mean practically for career, relationships, and finances.
+4. CURRENT MAHADASHA ANALYSIS — what this specific planetary period means for the person right now and until it ends.
+5. PRACTICAL GUIDANCE — 4 to 5 concrete recommendations based on this specific chart.
+
+Be specific to this exact chart, not generic. Aim for roughly 800-1000 words.`;
+  }
+
+  if (reportType === "compatibility") {
+    return `You are an expert professional numerologist writing a two-person compatibility report for a practice called PRATHASTU. Write entirely in ${languageName}, using that language's native script. Do not mention that you are an AI, add no disclaimers, and use no markdown symbols — only plain section headers in capital letters on their own line.
+
+Comparison details:
+- Person A: ${data.nameA} — Moolank ${data.moolankA}, Bhagyank ${data.bhagyankA}, Name Number ${data.nameNumberA}
+- Person B: ${data.nameB} — Moolank ${data.moolankB}, Bhagyank ${data.bhagyankB}, Name Number ${data.nameNumberB}
+- Overall Compatibility Score: ${data.overallScore}%
+- Detailed pairwise comparisons: ${JSON.stringify(data.pairs.map((p) => ({ comparison: p.label, numbers: `${p.numA} vs ${p.numB}`, status: p.status })))}
+
+Write a detailed, professional compatibility study with these labeled sections:
+1. OVERALL COMPATIBILITY SUMMARY — a clear, honest headline verdict based on the ${data.overallScore}% score and the pattern of Benefic/Malefic/Neutral results.
+2. MOOLANK COMPATIBILITY — what it means for their fundamental personalities to interact this way day-to-day.
+3. BHAGYANK COMPATIBILITY — what it means for their long-term life direction and shared goals.
+4. NAME ENERGY COMPATIBILITY — how their name vibrations interact.
+5. PRACTICAL GUIDANCE — 4 to 5 concrete, honest recommendations for this specific pairing, including any friction points to be aware of and how to work with them constructively. Do not sugarcoat a genuinely difficult combination, but stay constructive and respectful in tone.
+
+Be specific to these exact numbers, not generic. Aim for roughly 600-800 words.`;
+  }
+
   return "Write a short, professional numerology summary.";
 }
