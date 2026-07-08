@@ -8,7 +8,10 @@ import { db } from "@/lib/firebase";
 const emptyForm = {
   firstName: "", middleName: "", lastName: "", mobile: "", email: "",
   gender: "", city: "", dob: "", timeOfBirth: "", placeOfBirth: "",
+  areaOfStruggle: [],
 };
+
+const STRUGGLE_AREAS = ["Health", "Relationship", "Career", "Money", "Job"];
 
 export default function ClientsPage() {
   const [clients, setClients] = useState([]);
@@ -115,6 +118,27 @@ export default function ClientsPage() {
           <div>
             <label>City</label>
             <input value={form.city} onChange={(e) => updateField("city", e.target.value)} />
+          </div>
+          <div>
+            <label>Area of Struggle (drives which affirmations appear in their report)</label>
+            <div style={{ display: "flex", gap: 14, flexWrap: "wrap", marginBottom: 14 }}>
+              {STRUGGLE_AREAS.map((area) => (
+                <label key={area} style={{ display: "flex", alignItems: "center", gap: 4, fontWeight: 400 }}>
+                  <input
+                    type="checkbox"
+                    style={{ width: "auto", marginBottom: 0 }}
+                    checked={form.areaOfStruggle.includes(area)}
+                    onChange={(e) => {
+                      const next = e.target.checked
+                        ? [...form.areaOfStruggle, area]
+                        : form.areaOfStruggle.filter((a) => a !== area);
+                      updateField("areaOfStruggle", next);
+                    }}
+                  />
+                  {area}
+                </label>
+              ))}
+            </div>
           </div>
           <button className="btn btn-primary" disabled={saving}>{saving ? "Saving…" : "Save Client"}</button>
         </form>

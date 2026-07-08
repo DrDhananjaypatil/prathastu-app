@@ -11,6 +11,8 @@ import {
   calcNameNumber,
   calcMobileAdjacentPairs,
   calcUniqueDigitCombinations,
+  calcUniqueCombinationsFromDOB,
+  calcRepeatingDigits,
   suggestCompatibleNames,
   computeTwoPersonCompatibility,
 } from "@/lib/numerology";
@@ -24,6 +26,8 @@ import {
   MOOLANK_COMPATIBILITY,
   COMPOUND_NUMBER_TEXT,
   LETTER_MEANINGS,
+  REPEATING_NUMBER_TEXT,
+  AFFIRMATIONS,
   classifyPair,
   combinationMeaning,
   getCompatibility,
@@ -190,13 +194,13 @@ function BirthDetailsSection({ client }) {
       )}
 
       {activeReport && (
-        <BirthReportView key={activeReport.id} report={activeReport} altNames={altNames} setAltNames={setAltNames} clientId={client.id} />
+        <BirthReportView key={activeReport.id} report={activeReport} altNames={altNames} setAltNames={setAltNames} clientId={client.id} client={client} />
       )}
     </div>
   );
 }
 
-function BirthReportView({ report, altNames, setAltNames, clientId }) {
+function BirthReportView({ report, altNames, setAltNames, clientId, client }) {
   const {
     nameNumber, firstNameNumber, lifePathNumber, birthNumber, soulUrgeNumber,
     personalityNumber, mobileNumberAnalysis, loshuGrid, system, inputs,
@@ -213,7 +217,7 @@ function BirthReportView({ report, altNames, setAltNames, clientId }) {
   async function handleDownloadPdf() {
     setPdfBusy(true);
     try {
-      await exportBirthReportPDF(report, { lang: pdfLang, aiText: aiReports[pdfLang] });
+      await exportBirthReportPDF(report, { lang: pdfLang, aiText: aiReports[pdfLang], areaOfStruggle: client?.areaOfStruggle });
     } finally {
       setPdfBusy(false);
     }
@@ -365,6 +369,58 @@ function BirthReportView({ report, altNames, setAltNames, clientId }) {
           </tbody>
         </table>
       </div>
+
+      {/* Numbers appearing more than once */}
+      {calcRepeatingDigits(inputs.dob).length > 0 && (
+        <div style={{ marginTop: 20 }}>
+          <h3>Numbers Appearing More Than Once</h3>
+          {calcRepeatingDigits(inputs.dob).map((n) => (
+            <div key={n} style={{ marginBottom: 10 }}>
+              <strong>Number {n}:</strong> {REPEATING_NUMBER_TEXT[n]}
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Chart-wide number combinations */}
+      {calcUniqueCombinationsFromDOB(inputs.dob, 2).length > 0 && (
+        <div style={{ marginTop: 20 }}>
+          <h3>Your Chart Shows Combinations Of</h3>
+          <p style={{ fontSize: "0.82rem", color: "#666", marginBottom: 8 }}>
+            Generated from the digits present in the date of birth, classified using the classical Graha Maitri
+            (planetary friendship) system.
+          </p>
+          {calcUniqueCombinationsFromDOB(inputs.dob, 2).map((pair, i) => (
+            <div key={i} className="card" style={{ marginBottom: 10 }}>
+              <div className="card-title-row">
+                <strong>Numbers {pair.join(", ")}</strong>
+                <span className={`badge ${classifyPair(pair[0], pair[1]) === "Benefic" ? "badge-paid" : classifyPair(pair[0], pair[1]) === "Malefic" ? "badge-unpaid" : ""}`}>
+                  {classifyPair(pair[0], pair[1])}
+                </span>
+              </div>
+              <p style={{ fontSize: "0.88rem" }}>{combinationMeaning(pair)}</p>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Affirmations, matched to the client's selected Area of Struggle */}
+      {client?.areaOfStruggle?.length > 0 && (
+        <div style={{ marginTop: 20 }}>
+          <h3>Affirmations</h3>
+          <p style={{ fontSize: "0.82rem", color: "#666", marginBottom: 8 }}>
+            Matched to the areas selected on this client's profile: {client.areaOfStruggle.join(", ")}.
+          </p>
+          {client.areaOfStruggle.map((area) => (
+            AFFIRMATIONS[area] && (
+              <div key={area} className="card" style={{ marginBottom: 10 }}>
+                <strong>{area}</strong>
+                <p style={{ fontSize: "0.88rem", fontStyle: "italic", marginTop: 6 }}>{AFFIRMATIONS[area]}</p>
+              </div>
+            )
+          ))}
+        </div>
+      )}
 
       {/* Sound & Vibration — first letter reading */}
       <div style={{ marginTop: 20 }}>
@@ -724,6 +780,10 @@ function MobileReportView({ report, clientId }) {
   const compat = LUCKY_COLORS_BY_MOOLANK[moolank];
   const layout = [[4, 9, 2], [3, 5, 7], [8, 1, 6]];
   const recommended = MOOLANK_COMPATIBILITY[moolank]?.friendly || [];
+  const isUnluckyTotal = MOOLANK_COMPATIBILITY[moolank]?.enemy?.includes(grid.mobileTotal);
+  const adjacentPairs = calcMobileAdjacentPairs(mobile);
+  const hasMaleficCombo = adjacentPairs.some(([a, b]) => classifyPair(a, b) === "Malefic");
+  const notRecommended = isUnluckyTotal || hasMaleficCombo;
 
   return (
     <div className="card">
@@ -740,6 +800,16 @@ function MobileReportView({ report, clientId }) {
           </button>
         </div>
       </div>
+
+      {notRecommended && (
+        <div className="card" style={{ background: "#f6e2df", border: "1px solid var(--danger)" }}>
+          <strong style={{ color: "var(--danger)" }}>This Mobile Number Is Not Recommended</strong>
+          <p style={{ fontSize: "0.88rem", marginTop: 6 }}>
+            {isUnluckyTotal && <>The Mobile Total ({grid.mobileTotal}) is unlucky for Moolank {moolank}. </>}
+            {hasMaleficCombo && <>It contains Malefic digit combinations ({adjacentPairs.filter(([a, b]) => classifyPair(a, b) === "Malefic").map(([a, b]) => `${a}${b}`).join(", ")}). </>}
+          </p>
+        </div>
+      )}
 
       <div className="card" style={{ background: "var(--parchment)" }}>
         <div className="card-title-row">
@@ -816,6 +886,17 @@ function MobileReportView({ report, clientId }) {
           </div>
         ))}
       </div>
+
+      {calcRepeatingDigits(mobile).length > 0 && (
+        <div style={{ marginTop: 16 }}>
+          <h3>Numbers Appearing More Than Once</h3>
+          {calcRepeatingDigits(mobile).map((n) => (
+            <div key={n} style={{ marginBottom: 10 }}>
+              <strong>Number {n}:</strong> {REPEATING_NUMBER_TEXT[n]}
+            </div>
+          ))}
+        </div>
+      )}
 
       {uniqueDigits.length >= 2 && (
         <div style={{ marginTop: 16 }}>

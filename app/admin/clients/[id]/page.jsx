@@ -40,6 +40,7 @@ export default function ClientDetailPage() {
         dob: data.dob || "",
         timeOfBirth: data.timeOfBirth || "",
         placeOfBirth: data.placeOfBirth || "",
+        areaOfStruggle: data.areaOfStruggle || [],
       });
     }
   }
@@ -161,6 +162,27 @@ export default function ClientDetailPage() {
               <div>
                 <label>City</label>
                 <input value={editForm.city} onChange={(e) => setEditForm({ ...editForm, city: e.target.value })} />
+              </div>
+              <div>
+                <label>Area of Struggle (drives which affirmations appear in their report)</label>
+                <div style={{ display: "flex", gap: 14, flexWrap: "wrap", marginBottom: 14 }}>
+                  {["Health", "Relationship", "Career", "Money", "Job"].map((area) => (
+                    <label key={area} style={{ display: "flex", alignItems: "center", gap: 4, fontWeight: 400 }}>
+                      <input
+                        type="checkbox"
+                        style={{ width: "auto", marginBottom: 0 }}
+                        checked={editForm.areaOfStruggle.includes(area)}
+                        onChange={(e) => {
+                          const next = e.target.checked
+                            ? [...editForm.areaOfStruggle, area]
+                            : editForm.areaOfStruggle.filter((a) => a !== area);
+                          setEditForm({ ...editForm, areaOfStruggle: next });
+                        }}
+                      />
+                      {area}
+                    </label>
+                  ))}
+                </div>
               </div>
               <button className="btn btn-primary" disabled={savingProfile}>{savingProfile ? "Saving…" : "Save Profile"}</button>
               {profileMsg && <p style={{ marginTop: 8 }}>{profileMsg}</p>}
